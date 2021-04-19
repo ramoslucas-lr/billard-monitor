@@ -1,3 +1,5 @@
+import math
+
 import cv2 as cv
 import numpy as np
 import scipy
@@ -8,6 +10,18 @@ image = False
 
 if not image:
     cap = cv.VideoCapture('DIP/video.mp4')
+
+    frame_width = int(cap.get(3))
+    frame_height = int(cap.get(4))
+
+    size = (frame_width, frame_height)
+
+    # Below VideoWriter object will create
+    # a frame of above defined The output
+    # is stored in 'filename.avi' file.
+    result = cv.VideoWriter('filename.avi',
+                             cv.VideoWriter_fourcc(*'MJPG'),
+                             10, size)
 else:
     image_url = "DIP/i4.png"
     cap = cv.imread(image_url)
@@ -17,12 +31,11 @@ def z3_operation(type, src):
     isize = 20
     gray = src.astype('uint16')
 
-    #Output1 = scipy.ndimage.grey_dilation(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    Output2 = scipy.ndimage.grey_erosion(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(4,4)))
-    #Output3 = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    #Output4 = scipy.ndimage.grey_closing(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    #Output5 = scipy.ndimage.grey_closing(Output3, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-
+    # Output1 = scipy.ndimage.grey_dilation(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    Output2 = scipy.ndimage.grey_erosion(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (4, 4)))
+    # Output3 = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    # Output4 = scipy.ndimage.grey_closing(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    # Output5 = scipy.ndimage.grey_closing(Output3, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
 
     # f, axarr = plt.subplots(3,2)
     # axarr[0, 0].imshow(gray, cmap='gray')
@@ -41,6 +54,7 @@ def z3_operation(type, src):
     # plt.show()
 
     return Output2
+
 
 def threshold_image(src):
     reto, th1 = cv.threshold(src, 127, 255, cv.THRESH_BINARY)
@@ -67,7 +81,7 @@ def double_unsharp_mask(src):
 
 def unsharp_mask(src):
     gaussian = cv.GaussianBlur(src, (0, 0), 5.0)
-    cv.imshow("gaussian", gaussian)
+    # cv.imshow("gaussian", gaussian)
     unsharp_image = cv.addWeighted(src, 2, gaussian, -1, 0)
 
     return unsharp_image
@@ -76,18 +90,12 @@ def unsharp_mask(src):
 def process_frame(frame):
     original = frame.copy()
 
-    img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     b, g, r = cv.split(original)
 
     test = z3_operation('', b)
     cvuint8 = cv.convertScaleAbs(test)
-    cv.imshow("test", cvuint8)
-
-    hough = cvuint8.copy()
-    hough = unsharp_mask(hough)
-    cv.imshow('hough', hough)
-
-    rows = hough.shape[0]
+    hough = unsharp_mask(cvuint8)
+    # cv.imshow('hough', hough)
     circles = cv.HoughCircles(hough, cv.HOUGH_GRADIENT, 0.1, 10,
                               param1=180, param2=15,
                               minRadius=10, maxRadius=20)
@@ -113,14 +121,31 @@ if image:
 
 else:
     while cap.isOpened():
-        ret, imagem = cap.read()
 
-        output = process_frame(imagem)
+        ret, frame = cap.read()
 
-        cv.imshow("output", output)
-        if cv.waitKey(1) & 0xFF == ord('q'):
+        if ret == True:
+
+            output = process_frame(frame)
+            # Write the frame into the
+            # file 'filename.avi'
+            result.write(output)
+
+            # Display the frame
+            # saved in the file
+            cv.imshow('Frame', output)
+
+            # Press S on keyboard
+            # to stop the process
+            if cv.waitKey(1) & 0xFF == ord('s'):
+                break
+
+            # Break the loop
+        else:
             break
-        
+
+
 
     cap.release()
+    result.release()
     cv.destroyAllWindows()
