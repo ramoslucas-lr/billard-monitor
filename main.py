@@ -1,13 +1,24 @@
-import math
-
 import cv2 as cv
 import numpy as np
 import scipy
 import scipy.ndimage
-from matplotlib import pyplot as plt
+
+from circles import Circle
 
 image = False
-record = True
+record = False
+borders = False
+
+ax = None
+ay = None
+bx = None
+by = None
+cx = None
+cy = None
+dx = None
+dy = None
+
+
 
 if not image:
     cap = cv.VideoCapture('DIP/video.mp4')
@@ -23,10 +34,10 @@ if not image:
 
     if record:
         result = cv.VideoWriter('filename.avi',
-                                 cv.VideoWriter_fourcc(*'MJPG'),
-                                 30, size)
+                                cv.VideoWriter_fourcc(*'MJPG'),
+                                30, size)
 else:
-    image_url = "DIP/i4.png"
+    image_url = "DIP/i2.png"
     cap = cv.imread(image_url)
 
 
@@ -77,7 +88,7 @@ def local_histogram_equalization(src):
 def double_unsharp_mask(src):
     gaussian_3 = cv.GaussianBlur(src, (0, 0), 5.0)
     gaussian_5 = cv.GaussianBlur(gaussian_3, (0, 0), 9.0)
-    double_unsharp_image = cv.addWeighted(gaussian_3, 10, gaussian_5, -9)
+    double_unsharp_image = cv.addWeighted(gaussian_3, 10, gaussian_5, -9, 0)
 
     return double_unsharp_image
 
@@ -90,7 +101,68 @@ def unsharp_mask(src):
     return unsharp_image
 
 
+def hough_circles(hough):
+    circles = cv.HoughCircles(hough, cv.HOUGH_GRADIENT, 0.1, 10,
+                              param1=180, param2=15,
+                              minRadius=10, maxRadius=20)
+
+    return circles
+
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
+
+
+def get_vertices(horizontal, vertical, xm, ym):
+    vertical = np.array(vertical)[:, 0]
+    horizontal = np.array(horizontal)[:, 1]
+
+    ax = find_nearest(vertical[vertical < xm], xm)
+    bx = find_nearest(vertical[vertical > xm], xm)
+    cx = bx
+    dx = ax
+
+    ay = find_nearest(horizontal[horizontal < ym], ym)
+    by = ay
+    cy = find_nearest(horizontal[horizontal > ym], ym)
+    dy = cy
+
+    return ax, ay, bx, by, cx, cy, dx, dy
+
+
+def hough_lines(hough):
+    height = frame.shape[0]
+    width = frame.shape[1]
+
+    xm = width / 2
+    ym = height / 2
+
+    vertical_lines = []
+    horizontal_lines = []
+
+    # Find the edges in the image using canny detector
+    edges = cv.Canny(hough, 50, 200)
+    # Detect points that form a line
+    lines = cv.HoughLinesP(edges, 1, np.pi / 180, 200, minLineLength=150, maxLineGap=100)
+
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+
+        if x1 == x2:
+            vertical_lines.append([x1, y1, x2, y2])
+
+        if y1 == y2:
+            horizontal_lines.append([x1, y1, x2, y2])
+
+    ax, ay, bx, by, cx, cy, dx, dy = get_vertices(horizontal_lines, vertical_lines, xm, ym)
+
+    return ax, ay, bx, by, cx, cy, dx, dy
+
+
 def process_frame(frame):
+    global borders, ax, ay, bx, by, cx, cy, dx, dy
     original = frame.copy()
 
     b, g, r = cv.split(original)
@@ -99,21 +171,37 @@ def process_frame(frame):
     cvuint8 = cv.convertScaleAbs(test)
     hough = unsharp_mask(cvuint8)
     # cv.imshow('hough', hough)
-    circles = cv.HoughCircles(hough, cv.HOUGH_GRADIENT, 0.1, 10,
-                              param1=180, param2=15,
-                              minRadius=10, maxRadius=20)
+    circles = hough_circles(hough)
+
+    if not borders:
+        ax, ay, bx, by, cx, cy, dx, dy = hough_lines(hough)
+        borders = True
+
+    # line ab
+    cv.line(original, (ax, ay), (bx, by), (255, 0, 0), 3)
+    # line bc
+    cv.line(original, (bx, by), (cx, cy), (255, 0, 0), 3)
+    # line cd
+    cv.line(original, (cx, cy), (dx, dy), (255, 0, 0), 3)
+    # line da
+    cv.line(original, (ax, ay), (dx, dy), (255, 0, 0), 3)
 
     if circles is not None:
         # convert the (x, y) coordinates and radius of the circles to integers
         circles = np.round(circles[0, :]).astype("int")
         # loop over the (x, y) coordinates and radius of the circles
+        circles_arr = []
 
         for (x, y, r) in circles:
+            if (x > ax - 3 and x < bx + 3) and (y > ay - 3 and y < cy + 3):
+                circles_arr.append(Circle(x, y, r))
+
+        for circle in circles_arr:
+
             # draw the circle in the output image, then draw a rectangle
             # corresponding to the center of the circle
-            cv.circle(original, (x, y), r, (0, 255, 0), 4)
-            cv.rectangle(original, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-        # show the output image
+            cv.circle(original, (circle.x, circle.y), 10, (0, 255, 0), 2)
+            cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
 
     return original
 
@@ -148,8 +236,6 @@ else:
             # Break the loop
         else:
             break
-
-
 
     cap.release()
     if record:
