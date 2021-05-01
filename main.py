@@ -7,6 +7,7 @@ import scipy.ndimage
 from matplotlib import pyplot as plt
 
 image = False
+record = True
 
 if not image:
     cap = cv.VideoCapture('DIP/video.mp4')
@@ -19,9 +20,11 @@ if not image:
     # Below VideoWriter object will create
     # a frame of above defined The output
     # is stored in 'filename.avi' file.
-    result = cv.VideoWriter('filename.avi',
-                             cv.VideoWriter_fourcc(*'MJPG'),
-                             10, size)
+
+    if record:
+        result = cv.VideoWriter('filename.avi',
+                                 cv.VideoWriter_fourcc(*'MJPG'),
+                                 30, size)
 else:
     image_url = "DIP/i4.png"
     cap = cv.imread(image_url)
@@ -104,6 +107,7 @@ def process_frame(frame):
         # convert the (x, y) coordinates and radius of the circles to integers
         circles = np.round(circles[0, :]).astype("int")
         # loop over the (x, y) coordinates and radius of the circles
+
         for (x, y, r) in circles:
             # draw the circle in the output image, then draw a rectangle
             # corresponding to the center of the circle
@@ -129,7 +133,8 @@ else:
             output = process_frame(frame)
             # Write the frame into the
             # file 'filename.avi'
-            result.write(output)
+            if record:
+                result.write(output)
 
             # Display the frame
             # saved in the file
@@ -147,5 +152,6 @@ else:
 
 
     cap.release()
-    result.release()
+    if record:
+        result.release()
     cv.destroyAllWindows()
