@@ -18,7 +18,8 @@ cy = None
 dx = None
 dy = None
 
-
+detected_circles = []
+shown_circles = []
 
 if not image:
     cap = cv.VideoCapture('DIP/video.mp4')
@@ -45,11 +46,17 @@ def z3_operation(type, src):
     isize = 20
     gray = src.astype('uint16')
 
-    # Output1 = scipy.ndimage.grey_dilation(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    Output2 = scipy.ndimage.grey_erosion(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (4, 4)))
-    # Output3 = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    # Output4 = scipy.ndimage.grey_closing(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
-    # Output5 = scipy.ndimage.grey_closing(Output3, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    if type == 1:
+        Output = scipy.ndimage.grey_dilation(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    if type == 2:
+        Output = scipy.ndimage.grey_erosion(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+    if type == 3:
+        Output = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    if type == 4:
+        Output = scipy.ndimage.grey_closing(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
+    if type == 5:
+        Output = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        Output = scipy.ndimage.grey_closing(Output, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE,(5,5)))
 
     # f, axarr = plt.subplots(3,2)
     # axarr[0, 0].imshow(gray, cmap='gray')
@@ -67,7 +74,7 @@ def z3_operation(type, src):
     #
     # plt.show()
 
-    return Output2
+    return Output
 
 
 def threshold_image(src):
@@ -96,14 +103,14 @@ def double_unsharp_mask(src):
 def unsharp_mask(src):
     gaussian = cv.GaussianBlur(src, (0, 0), 5.0)
     # cv.imshow("gaussian", gaussian)
-    unsharp_image = cv.addWeighted(src, 2, gaussian, -1, 0)
+    unsharp_image = cv.addWeighted(src, 4, gaussian, -3, 0)
 
     return unsharp_image
 
 
 def hough_circles(hough):
-    circles = cv.HoughCircles(hough, cv.HOUGH_GRADIENT, 0.1, 10,
-                              param1=180, param2=15,
+    circles = cv.HoughCircles(hough, cv.HOUGH_GRADIENT, 0.7, 10,
+                              param1=200, param2=15,
                               minRadius=10, maxRadius=20)
 
     return circles
@@ -165,12 +172,14 @@ def process_frame(frame):
     global borders, ax, ay, bx, by, cx, cy, dx, dy
     original = frame.copy()
 
+    hsv = cv.cvtColor(original, cv.COLOR_BGR2HSV)
+    h, s, v = cv.split(hsv)
     b, g, r = cv.split(original)
 
-    test = z3_operation('', b)
+    test = z3_operation(2, b)
     cvuint8 = cv.convertScaleAbs(test)
     hough = unsharp_mask(cvuint8)
-    # cv.imshow('hough', hough)
+    cv.imshow('hough', hough)
     circles = hough_circles(hough)
 
     if not borders:
@@ -186,6 +195,8 @@ def process_frame(frame):
     # line da
     cv.line(original, (ax, ay), (dx, dy), (255, 0, 0), 3)
 
+    shown_circles_arr = []
+
     if circles is not None:
         # convert the (x, y) coordinates and radius of the circles to integers
         circles = np.round(circles[0, :]).astype("int")
@@ -194,14 +205,22 @@ def process_frame(frame):
 
         for (x, y, r) in circles:
             if (x > ax - 3 and x < bx + 3) and (y > ay - 3 and y < cy + 3):
-                circles_arr.append(Circle(x, y, r))
+                circles_arr.append(Circle(x, y))
+
+        detected_circles.append(circles_arr)
+
 
         for circle in circles_arr:
-
             # draw the circle in the output image, then draw a rectangle
             # corresponding to the center of the circle
             cv.circle(original, (circle.x, circle.y), 10, (0, 255, 0), 2)
             cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
+            shown_circles_arr.append(circle)
+
+        shown_circles.append(shown_circles_arr)
+
+
+
 
     return original
 
