@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 import scipy
 import scipy.ndimage
+import csv
 
 from circles import Circle
 
@@ -168,7 +169,7 @@ def hough_lines(hough):
     return ax, ay, bx, by, cx, cy, dx, dy
 
 
-def process_frame(frame):
+def process_frame(frame, frame_index):
     global borders, ax, ay, bx, by, cx, cy, dx, dy
     original = frame.copy()
 
@@ -209,14 +210,47 @@ def process_frame(frame):
 
         detected_circles.append(circles_arr)
 
+        circle_index = 0
 
-        for circle in circles_arr:
-            # draw the circle in the output image, then draw a rectangle
-            # corresponding to the center of the circle
-            cv.circle(original, (circle.x, circle.y), 10, (0, 255, 0), 2)
-            cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
-            shown_circles_arr.append(circle)
+        with open('employee_file.csv', mode='a') as employee_file:
+            employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
+            for circle in circles_arr:
+
+                # draw the circle in the output image, then draw a rectangle
+                # corresponding to the center of the circle
+                cv.circle(original, (circle.x, circle.y), 10, (0, 255, 0), 2)
+                cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
+                shown_circles_arr.append(circle)
+
+                y = circle.y
+                x = circle.x
+                r = 10
+
+                img = frame.copy()
+                img = img[y-r:y + r, x - r:x + r]
+                # create a mask
+                mask = np.full((img.shape[0], img.shape[1]), 0, dtype=np.uint8)
+                # create circle mask, center, radius, fill color, size of the border
+                cv.circle(mask, (r, r), r, (255, 255, 255), -1)
+                # get only the inside pixels
+                fg = cv.bitwise_or(img, img, mask=mask)
+
+                mask = cv.bitwise_not(mask)
+                background = np.full(img.shape, 255, dtype=np.uint8)
+                bk = cv.bitwise_or(background, background, mask=mask)
+                final = cv.bitwise_or(fg, bk)
+
+                b, g, r = cv.split(final)
+
+                hsv = cv.cvtColor(final, cv.COLOR_BGR2HSV)
+                h, s, v = cv.split(hsv)
+
+                employee_writer.writerow([f'f{frame_index}c{circle_index}.png', np.mean(b), np.mean(g), np.mean(r), np.mean(h), np.mean(s), np.mean(v)])
+
+                cv.imwrite(f'f{frame_index}c{circle_index}.png', final)
+
+                circle_index += 1
         shown_circles.append(shown_circles_arr)
 
 
@@ -231,13 +265,20 @@ if image:
     cv.waitKey(0)
 
 else:
+    with open('employee_file.csv', mode='w') as employee_file:
+        employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        employee_writer.writerow(['index', 'b_int', 'g_int', 'r_int', 'h_int', 's_int', 'v_int'])
+
+    frame_index = 0
     while cap.isOpened():
+
 
         ret, frame = cap.read()
 
         if ret == True:
 
-            output = process_frame(frame)
+            output = process_frame(frame, frame_index)
+            frame_index += 1
             # Write the frame into the
             # file 'filename.avi'
             if record:
