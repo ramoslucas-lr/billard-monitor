@@ -3,10 +3,12 @@ import numpy as np
 import scipy
 import scipy.ndimage
 import csv
+import joblib
 
+from matplotlib import colors
 
 image = False
-record = False
+record = True
 borders = False
 
 ax = None
@@ -21,8 +23,13 @@ dy = None
 detected_circles = []
 shown_circles = []
 
+filename = 'balls_model.pkl'
+multi_model = joblib.load(filename)
+ball_classes = ['pink', 'yellow', 'trash', 'yellow', 'brown', 'trash', 'red', 'black', 'green', 'white', 'blue']
+
+
 if not image:
-    cap = cv.VideoCapture('DIP/video.mp4')
+    cap = cv.VideoCapture('../DIP/video.mp4')
 
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
@@ -36,7 +43,7 @@ if not image:
     if record:
         result = cv.VideoWriter('filename.avi',
                                 cv.VideoWriter_fourcc(*'MJPG'),
-                                30, size)
+                                24, size)
 else:
     image_url = "DIP/i2.png"
     cap = cv.imread(image_url)
@@ -184,7 +191,7 @@ def process_frame(frame, frame_index):
     test = z3_operation(2, b)
     cvuint8 = cv.convertScaleAbs(test)
     hough = unsharp_mask(cvuint8)
-    cv.imshow('hough', hough)
+    #cv.imshow('hough', hough)
     circles = hough_circles(hough)
 
     if not borders:
@@ -216,16 +223,12 @@ def process_frame(frame, frame_index):
 
         circle_index = 0
 
+
+
         with open('employee_file.csv', mode='a') as employee_file:
             employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
             for circle in circles_arr:
-
-                # draw the circle in the output image, then draw a rectangle
-                # corresponding to the center of the circle
-                cv.circle(original, (circle.x, circle.y), 10, (0, 255, 0), 2)
-                cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
-                shown_circles_arr.append(circle)
 
                 y = circle.y
                 x = circle.x
@@ -249,10 +252,19 @@ def process_frame(frame, frame_index):
 
                 hsv = cv.cvtColor(final, cv.COLOR_BGR2HSV)
                 h, s, v = cv.split(hsv)
+                x_new = np.array([[np.mean(b), np.mean(g), np.mean(r), np.mean(h), np.mean(s), np.mean(v)]])
+                data_pred = multi_model.predict(x_new)[0]
 
-                employee_writer.writerow([f'f{frame_index}c{circle_index}.png', np.mean(b), np.mean(g), np.mean(r), np.mean(h), np.mean(s), np.mean(v)])
+                if not ball_classes[data_pred] == 'trash':
+                    ball_color = np.flip(np.array(colors.to_rgb(ball_classes[data_pred]))*255)
+                    cv.circle(original, (circle.x, circle.y), 10, ball_color, 2)
+                    cv.rectangle(original, (circle.x - 1, circle.y - 1), (circle.x + 1, circle.y + 1), (0, 128, 255), -1)
+                    shown_circles_arr.append(circle)
+                    cv.putText(original, ball_classes[data_pred], (circle.x + 13, circle.y), cv.FONT_HERSHEY_PLAIN,
+                               1, ball_color, 2, cv.LINE_4)
+                #employee_writer.writerow([f'f{frame_index}c{circle_index}.png', np.mean(b), np.mean(g), np.mean(r), np.mean(h), np.mean(s), np.mean(v)])
 
-                cv.imwrite(f'f{frame_index}c{circle_index}.png', final)
+                #cv.imwrite(f'f{frame_index}c{circle_index}.png', final)
 
                 circle_index += 1
         shown_circles.append(shown_circles_arr)
