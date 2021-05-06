@@ -4,7 +4,6 @@ import scipy
 import scipy.ndimage
 import csv
 
-from circles import Circle
 
 image = False
 record = False
@@ -42,6 +41,11 @@ else:
     image_url = "DIP/i2.png"
     cap = cv.imread(image_url)
 
+
+class Circle:
+    def __init__(self, x_coord, y_coord):
+        self.x = x_coord
+        self.y = y_coord
 
 def z3_operation(type, src):
     isize = 20
