@@ -1,5 +1,7 @@
-opencv-python
-scipy
-pandas
-scikit-learn
-matplotlib
+opencv-python~=4.5.1.48
+scipy~=1.6.3
+pandas~=1.2.4
+scikit-learn~=0.24.2
+matplotlib~=3.4.1
+numpy~=1.20.2
+joblib~=1.0.1
