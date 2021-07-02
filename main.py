@@ -4,7 +4,7 @@ from billard import ball_classifier, circle_ml
 import cv2 as cv
 
 render_output = True
-build_model = False
+build_model = True
 
 def main():
     if build_model:
