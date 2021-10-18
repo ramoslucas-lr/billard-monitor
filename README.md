@@ -1,6 +1,6 @@
 # Billard Monitor
 
-The Billard Monitor is a project developed as part of the Digital Image Processing course at the Federal University of Santa Catarina [UFSC](http://ufsc.br/)
+The Billard Monitor is a project developed as part of the Digital Image Processing course at the Federal University of Santa Catarina [UFSC](http://ufsc.br/). You can check the video with every step [here](https://www.youtube.com/watch?v=MnL_hqEmVZA).
 
 ## Requirements
 ```
@@ -18,15 +18,7 @@ All the requirements are available at the requirements.txt file and you can inst
 ```
 
 ## Usage
-At the moment, no arguments are being passed to the code. To run the code you need to alter the variables _render_output_ and _build_model_ to decide if you want to render the output to a .avi file and build a RandomForest model, respectively. You need to have a built model to classify each circle detected by the Hough Transform.
+No arguments are being passed to the code. To run the code you need to alter the variables _render_output_ and _build_model_ to decide if you want to render the output to a .avi file and build a RandomForest model, respectively. You need to have a built model to classify each circle detected by the Hough Transform.
 ```
 python main.py
 ```
-
-## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-Please make sure to update tests as appropriate.
-
-## License
-GNU General Public License
