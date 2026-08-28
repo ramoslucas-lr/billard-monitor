@@ -31,22 +31,18 @@ class Circle:
 
 
 def z3_operation(operation, src):
-    gray = src.astype('uint16')
-    z3_output = gray
-
     if operation == 1:
-        z3_output = scipy.ndimage.grey_dilation(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        return cv.dilate(src, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
     elif operation == 2:
-        z3_output = scipy.ndimage.grey_erosion(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        return cv.erode(src, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
     elif operation == 3:
-        z3_output = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        return cv.morphologyEx(src, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
     elif operation == 4:
-        z3_output = scipy.ndimage.grey_closing(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        return cv.morphologyEx(src, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
     elif operation == 5:
-        z3_output = scipy.ndimage.grey_opening(gray, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-        z3_output = scipy.ndimage.grey_closing(z3_output, structure=cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-
-    return z3_output
+        opened = cv.morphologyEx(src, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        return cv.morphologyEx(opened, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+    return src
 
 
 def unsharp_mask(src):
@@ -108,7 +104,7 @@ def hough_lines(hough):
     lines = cv.HoughLinesP(edges, 1, np.pi / 180, 200, minLineLength=150, maxLineGap=100)
 
     for line in lines:
-        x1, y1, x2, y2 = line[0]
+        x1, y1, x2, y2 = line.flatten()[:4]
 
         if x1 == x2:
             vertical_lines.append([x1, y1, x2, y2])
@@ -123,7 +119,7 @@ def preprocess(frame):
     b, g, r = cv.split(frame)
 
     eroded = z3_operation(2, b)
-    cvuint8 = cv.convertScaleAbs(eroded)
+    cvuint8 = eroded
 
     cvuint8 = unsharp_mask(cvuint8)
 
@@ -154,27 +150,41 @@ def apply_hough(frame):
 def cut_circle(circle, frame):
     r = 10
 
-    img = frame.copy()
-    img = img[circle.y - r:circle.y + r, circle.x - r:circle.x + r]
+    y1, y2 = max(0, circle.y - r), min(frame.shape[0], circle.y + r)
+    x1, x2 = max(0, circle.x - r), min(frame.shape[1], circle.x + r)
 
-    mask = np.full((img.shape[0], img.shape[1]), 0, dtype=np.uint8)
-    cv.circle(mask, (r, r), r, (255, 255, 255), -1)
-    fg = cv.bitwise_or(img, img, mask=mask)
+    img = frame[y1:y2, x1:x2]
 
-    mask = cv.bitwise_not(mask)
-    background = np.full(img.shape, 255, dtype=np.uint8)
-    bk = cv.bitwise_or(background, background, mask=mask)
-    final = cv.bitwise_or(fg, bk)
+    if img.shape[0] != 2*r or img.shape[1] != 2*r:
+        img_padded = np.full((2*r, 2*r, 3), 255, dtype=np.uint8)
+
+        px1 = r - (circle.x - x1)
+        px2 = px1 + (x2 - x1)
+        py1 = r - (circle.y - y1)
+        py2 = py1 + (y2 - y1)
+
+        img_padded[py1:py2, px1:px2] = img
+        img = img_padded
+
+    mask = np.zeros((2*r, 2*r), dtype=np.uint8)
+    cv.circle(mask, (r, r), r, 255, -1)
+
+    final = np.full((2*r, 2*r, 3), 255, dtype=np.uint8)
+    final[mask == 255] = img[mask == 255]
 
     return final
 
 
 def get_circle_descriptors(final):
-    b, g, r = cv.split(final)
+    mask = np.zeros((final.shape[0], final.shape[1]), dtype=np.uint8)
+    cv.circle(mask, (final.shape[1]//2, final.shape[0]//2), 10, 255, -1)
+
+    b_mean, g_mean, r_mean, _ = cv.mean(final, mask=mask)
 
     hsv = cv.cvtColor(final, cv.COLOR_BGR2HSV)
-    h, s, v = cv.split(hsv)
-    x_new = np.array([[np.mean(b), np.mean(g), np.mean(r), np.mean(h), np.mean(s), np.mean(v)]])
+    h_mean, s_mean, v_mean, _ = cv.mean(hsv, mask=mask)
+
+    x_new = np.array([[b_mean, g_mean, r_mean, h_mean, s_mean, v_mean]])
 
     return x_new
 
