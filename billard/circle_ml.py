@@ -47,21 +47,6 @@ def get_features(data, plot):
     return features, features_2d
 
 
-def plot_clusters(samples, clusters):
-    col_dic = {0: '#c241c4', 1: '#e0dd72', 2: '#000dff', 3: '#d4db00', 4: '#804f00', 5: '#000dff', 6: '#d10000',
-               7: '#000000', 8: '#478500', 9: '#b0b0b0', 10: '#0035e3'}
-    mrk_dic = {0: '.', 1: '.', 2: '.', 3: '.', 4: '.', 5: '.', 6: '.', 7: '.', 8: '.', 9: '.', 10: '.'}
-    colors = [col_dic[x] for x in clusters]
-    markers = [mrk_dic[x] for x in clusters]
-    for i, (sample_point, color, marker) in enumerate(zip(samples, colors, markers)):
-        print(i)
-        plt.scatter(sample_point[0], sample_point[1], color=color, marker=marker, s=100)
-    plt.xlabel('Dimension 1')
-    plt.ylabel('Dimension 2')
-    plt.title('Assignments')
-    plt.show()
-
-
 def obtain_agg_model(features):
     agg_model = AgglomerativeClustering(n_clusters=11)
     agg_clusters = agg_model.fit_predict(features.values)
