@@ -58,9 +58,7 @@ def hough_circles(hough):
 
 
 def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
+    return array[np.abs(array - value).argmin()]
 
 
 def get_vertices(horizontal, vertical, xm, ym):
