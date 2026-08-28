@@ -196,15 +196,16 @@ def process_frame_model(frame, circle_index):
     cvuint8 = preprocess(original)
     circles_arr = apply_hough(cvuint8)
 
-    for circle in circles_arr:
-        final = cut_circle(circle, frame)
-        x_new = get_circle_descriptors(final)
-
+    if circles_arr and len(circles_arr) > 0:
         with open('data/ball_descriptors.csv', mode='a') as balls_file:
             balls_writer = csv.writer(balls_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            balls_writer.writerow([f'c{circle_index}.png', x_new[0][0], x_new[0][1],x_new[0][2],x_new[0][3],x_new[0][4],x_new[0][5]])
 
-        circle_index += 1
+            for circle in circles_arr:
+                final = cut_circle(circle, frame)
+                x_new = get_circle_descriptors(final)
+
+                balls_writer.writerow([f'c{circle_index}.png', x_new[0][0], x_new[0][1],x_new[0][2],x_new[0][3],x_new[0][4],x_new[0][5]])
+                circle_index += 1
 
     return circle_index
 
