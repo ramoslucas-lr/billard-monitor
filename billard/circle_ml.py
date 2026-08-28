@@ -53,9 +53,9 @@ def plot_clusters(samples, clusters):
     mrk_dic = {0: '.', 1: '.', 2: '.', 3: '.', 4: '.', 5: '.', 6: '.', 7: '.', 8: '.', 9: '.', 10: '.'}
     colors = [col_dic[x] for x in clusters]
     markers = [mrk_dic[x] for x in clusters]
-    for sample in range(len(clusters)):
-        print(sample)
-        plt.scatter(samples[sample][0], samples[sample][1], color=colors[sample], marker=markers[sample], s=100)
+    for i, (sample_point, color, marker) in enumerate(zip(samples, colors, markers)):
+        print(i)
+        plt.scatter(sample_point[0], sample_point[1], color=color, marker=marker, s=100)
     plt.xlabel('Dimension 1')
     plt.ylabel('Dimension 2')
     plt.title('Assignments')
