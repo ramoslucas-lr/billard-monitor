@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-import joblib
+import skops.io as sio
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
@@ -99,11 +99,11 @@ def train_classification_model(data, agg_clusters):
 
 
 def save_model(model, model_file):
-    joblib.dump(model, model_file)
+    sio.dump(model, model_file)
 
 
 def test_model(x_new, model_file):
-    multi_model = joblib.load(model_file)
+    multi_model = sio.load(model_file, trusted=[])
 
     print('New sample: {}'.format(x_new[0]))
 
@@ -119,9 +119,9 @@ def build_model(data_file):
     agg_model, agg_clusters = obtain_agg_model(features)
     class_model = train_classification_model(data, agg_clusters)
 
-    save_model(class_model, 'model/balls_model.pkl')
+    save_model(class_model, 'model/balls_model.skops')
 
-    test_model(np.array([[123.705, 97.5625, 82.045, 87.9225, 129.975, 123.705]]), 'model/balls_model.pkl')
+    test_model(np.array([[123.705, 97.5625, 82.045, 87.9225, 129.975, 123.705]]), 'model/balls_model.skops')
 
 
 

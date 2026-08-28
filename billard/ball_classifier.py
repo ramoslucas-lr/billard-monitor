@@ -1,13 +1,10 @@
 import cv2 as cv
 import numpy as np
-import scipy
-import scipy.ndimage
 import csv
-import joblib
+import skops.io as sio
 
 from matplotlib import colors
 
-save_to_csv = False
 borders = False
 
 border_coordinates = {'ax': 0, 'ay': 0, 'bx': 0, 'by': 0,
@@ -20,7 +17,7 @@ size = (0, 0)
 ball_classes = ['pink', 'yellow', 'trash', 'yellow', 'brown', 'trash', 'red', 'black', 'green', 'white', 'blue']
 
 def load_model(filename):
-    multi_model = joblib.load(filename)
+    multi_model = sio.load(filename, trusted=[])
     return multi_model
 
 class Circle:
@@ -58,9 +55,7 @@ def hough_circles(hough):
 
 
 def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
+    return array[np.abs(array - value).argmin()]
 
 
 def get_vertices(horizontal, vertical, xm, ym):
