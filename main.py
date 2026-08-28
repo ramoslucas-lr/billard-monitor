@@ -28,7 +28,7 @@ def main():
         circle_ml.build_model('data/ball_descriptors.csv')
 
     cap, frame_size = ball_classifier.start_capture('DIP/video.mp4')
-    model = ball_classifier.load_model('model/balls_model.pkl')
+    model = ball_classifier.load_model('model/balls_model.skops')
 
     result = None
     if render_output:
