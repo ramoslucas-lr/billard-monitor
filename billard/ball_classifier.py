@@ -7,7 +7,6 @@ import joblib
 
 from matplotlib import colors
 
-save_to_csv = False
 borders = False
 
 border_coordinates = {'ax': 0, 'ay': 0, 'bx': 0, 'by': 0,
