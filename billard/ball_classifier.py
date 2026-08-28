@@ -3,7 +3,7 @@ import numpy as np
 import scipy
 import scipy.ndimage
 import csv
-import joblib
+import skops.io as sio
 
 from matplotlib import colors
 
@@ -20,7 +20,7 @@ size = (0, 0)
 ball_classes = ['pink', 'yellow', 'trash', 'yellow', 'brown', 'trash', 'red', 'black', 'green', 'white', 'blue']
 
 def load_model(filename):
-    multi_model = joblib.load(filename)
+    multi_model = sio.load(filename, trusted=[])
     return multi_model
 
 class Circle:
